@@ -74,5 +74,3 @@ You're now collaborating using GitHub! 🎉
 Feel free to repeat the process to continue contributing.
 
 ---
-
-Let me know if you want this customized for a specific project or team!
