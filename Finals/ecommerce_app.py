@@ -6,9 +6,24 @@ import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from datetime import datetime
+import openpyxl
+from openpyxl import load_workbook
+import os
+
+EXCEL_FILE = "inventory.xlsx"
+
+def ensure_excel_file():
+    if not os.path.exists(EXCEL_FILE):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Products"
+        ws.append(["Name", "Price", "Stock", "Image"])
+        wb.save(EXCEL_FILE)
+
+ensure_excel_file()
 
 # Setup
-ctk.set_appearance_mode("dark")
+ctk.set_appearance_mode("")
 ctk.set_default_color_theme("green")  # We'll manually adjust purple later
 
 # Constants
@@ -126,34 +141,57 @@ class ECommerceApp(ctk.CTk):
         self.refresh_inventory()
 
     def refresh_inventory(self):
+        from PIL import Image, ImageTk
+        import os
+
+        # Clear previous widgets
         for widget in self.admin_frame.winfo_children():
             widget.destroy()
+
+        # Clear current inventory list
+        inventory.clear()
+
+        # Load from Excel
+        wb = load_workbook(EXCEL_FILE)
+        ws = wb["Products"]
+
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            name, price, stock, image_path = row
+            if os.path.exists(image_path):  # Ensure image still exists
+                product = Product(name, float(price), int(stock), image_path)
+                inventory.append(product)
 
         if not inventory:
             label = ctk.CTkLabel(self.admin_frame, text="No Products Yet.", text_color="gray")
             label.pack()
             return
 
+        # Display products
         for idx, product in enumerate(inventory):
             frame = ctk.CTkFrame(self.admin_frame, fg_color="#333333", corner_radius=10)
             frame.grid(row=idx//2, column=idx%2, padx=10, pady=10, sticky="nsew")
 
-            img = Image.open(product.image_path)
-            img = img.resize((100, 100))
-            img = ImageTk.PhotoImage(img)
-            img_label = ctk.CTkLabel(frame, image=img, text="")
-            img_label.image = img
-            img_label.pack()
+            try:
+                img = Image.open(product.image_path)
+                img = img.resize((100, 100))
+                img = ImageTk.PhotoImage(img)
+                img_label = ctk.CTkLabel(frame, image=img, text="")
+                img_label.image = img  # keep reference
+                img_label.pack()
+            except Exception as e:
+                error_label = ctk.CTkLabel(frame, text="Image error", text_color="red")
+                error_label.pack()
 
             info = f"{product.name}\n₱{product.price:.2f}\nStock: {product.stock}"
             label = ctk.CTkLabel(frame, text=info)
             label.pack()
 
             edit_btn = ctk.CTkButton(frame, text="Edit Stock", command=lambda p=product: self.edit_stock_popup(p))
-            edit_btn.pack(pady=2)
+            edit_btn.pack(pady=2)   
 
-            delete_btn = ctk.CTkButton(frame, text="Delete", fg_color="red", hover_color="#cc0000", command=lambda p=product: self.delete_product(p))
+            delete_btn = ctk.CTkButton(frame, text="Delete", fg_color="red", command=lambda p=product: self.delete_product(p))
             delete_btn.pack(pady=2)
+
 
     def add_product_popup(self):
         popup = tk.Toplevel(self)
@@ -196,11 +234,18 @@ class ECommerceApp(ctk.CTk):
             price = float(price)
             stock = int(stock)
         except ValueError:
-            messagebox.showerror("Error", "Price must be number. Stock must be integer.")
+            messagebox.showerror("Error", "Price must be a number. Stock must be an integer.")
             return
 
         new_product = Product(name, price, stock, image)
         inventory.append(new_product)
+
+        # Save to Excel
+        wb = load_workbook(EXCEL_FILE)
+        ws = wb["Products"]
+        ws.append([name, price, stock, image])
+        wb.save(EXCEL_FILE)
+
         popup.destroy()
         self.refresh_inventory()
 
@@ -226,14 +271,37 @@ class ECommerceApp(ctk.CTk):
             messagebox.showerror("Error", "Stock must be an integer.")
             return
 
+        # Update in-memory
         product.stock = stock
+
+        # Update in Excel
+        wb = load_workbook(EXCEL_FILE)
+        ws = wb["Products"]
+        for row in ws.iter_rows(min_row=2):
+            if row[0].value == product.name and row[1].value == product.price and row[3].value == product.image:
+                row[2].value = stock
+                break
+        wb.save(EXCEL_FILE)
+
         popup.destroy()
         self.refresh_inventory()
+
 
     def delete_product(self, product):
         if messagebox.askyesno("Delete", f"Are you sure you want to delete {product.name}?"):
             inventory.remove(product)
+
+            # Delete from Excel
+            wb = load_workbook(EXCEL_FILE)
+            ws = wb["Products"]
+            for row in list(ws.iter_rows(min_row=2)):
+                if row[0].value == product.name and row[1].value == product.price and row[3].value == product.image:
+                    ws.delete_rows(row[0].row)
+                    break
+            wb.save(EXCEL_FILE)
+
             self.refresh_inventory()
+
 
     def download_sales_report(self):
         if not sales:
