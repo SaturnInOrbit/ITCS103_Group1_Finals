@@ -6,7 +6,6 @@ import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from datetime import datetime
-import openpyxl
 from openpyxl import load_workbook
 import os
 
@@ -23,7 +22,7 @@ def ensure_excel_file():
 ensure_excel_file()
 
 # Setup
-ctk.set_appearance_mode("")
+ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")  # We'll manually adjust purple later
 
 # Constants
@@ -141,9 +140,7 @@ class ECommerceApp(ctk.CTk):
         self.refresh_inventory()
 
     def refresh_inventory(self):
-        from PIL import Image, ImageTk
-        import os
-
+        
         # Clear previous widgets
         for widget in self.admin_frame.winfo_children():
             widget.destroy()
