@@ -57,8 +57,6 @@ class User:
         self.cart = []
         self.purchase_history = []
 
-
-
 def user_window(self):
     self.clear_widgets()
 
@@ -209,11 +207,6 @@ def user_window(self):
 
     exit_btn = ctk.CTkButton(toolbar, text="Exit", command=exit)
     exit_btn.pack(side="right", padx=5, pady=5)
-        
-
-
-
-
 
 def validate_login(username, password):
         wb = openpyxl.load_workbook(FILE_NAME)
@@ -313,8 +306,11 @@ class ECommerceApp(ctk.CTk):
             self.admin_password.delete(0, "end")
     
     def admin_logout(self):
-        messagebox.showwarning("Log Out", "Are You Sure You're Logging out")
-        self.home_screen()
+        msglogout = messagebox.askokcancel("Log Out", "Are you sure you're logging out?")
+        if msglogout == False:
+            pass
+        else: 
+            self.home_screen()
     
 # --- ADMIN DASHBOARD ---
     def admin_dashboard(self):
@@ -339,7 +335,7 @@ class ECommerceApp(ctk.CTk):
         download_sales_btn.pack(pady=10, fill="x", padx=10)
 
         logout_btn = ctk.CTkButton(sidebar, text="🚪 Logout", command=self.admin_logout)
-        logout_btn.pack(side="bottom", pady=20, fill="x", padx=10)
+        logout_btn.pack(pady=20, fill="x", padx=10)
 
         # Content Area
         self.admin_frame = ctk.CTkFrame(main_frame, fg_color="#262626")
