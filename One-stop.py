@@ -324,7 +324,7 @@ class ECommerceApp(ctk.CTk):
     def edit_stock_popup(self, product):
         popup = tk.Toplevel(self)
         popup.title("Edit Stock")
-        popup.geometry("250x200")
+        popup.geometry("250x400")
         popup.configure(bg="#1a1a1a")
 
         # Display the current product name and stock
@@ -336,16 +336,23 @@ class ECommerceApp(ctk.CTk):
         stock_entry.insert(0, str(product.stock))  # Pre-fill with current stock
         stock_entry.pack(pady=10)
 
+        price_label = ctk.CTkLabel(popup, text="Price (₱):")
+        price_label.pack()
+        price_entry = ctk.CTkEntry(popup)
+        price_entry.insert(0, f"{product.price:.2f}")
+        price_entry.pack(pady=5)
+
         # Save button that will call save_stock function to update the stock in the Excel sheet
-        save_btn = ctk.CTkButton(popup, text="Save", command=lambda: self.save_stock(product, stock_entry.get(), popup))
+        save_btn = ctk.CTkButton(popup, text="Save", command=lambda: self.save_stock(product, stock_entry.get(), price_entry.get(), popup))
         save_btn.pack(pady=10)
 
-    def save_stock(self, product, new_stock, popup):
+    def save_stock(self, product, new_stock, new_price, popup):
         # Convert the new stock value to integer
         try:
             new_stock = int(new_stock)
+            new_price = float(new_price)
         except ValueError:
-            messagebox.showerror("Invalid Input", "Please enter a valid number for stock.")
+            messagebox.showerror("Invalid Input", "Please enter a valid number for stock and price.")
             return
 
         # Update the stock value in the Excel file
@@ -356,7 +363,9 @@ class ECommerceApp(ctk.CTk):
             # Find the row where the product is located
             for row in ws.iter_rows(min_row=2):
                 if row[0].value == product.name:  # Match the product name
+                    row[1].value = new_price
                     row[2].value = new_stock  # Update the stock in column C (index 2)
+
                     break
             
             # Save the updated Excel file
@@ -366,6 +375,7 @@ class ECommerceApp(ctk.CTk):
             popup.destroy()
 
             messagebox.showinfo("Success", "Stock updated successfully.")
+            self.refresh_inventory()
         
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update stock: {e}")
@@ -573,7 +583,7 @@ class ECommerceApp(ctk.CTk):
             scrollable_frame = ctk.CTkScrollableFrame(self.content_area, width=960, height=580, corner_radius=0)
             scrollable_frame.pack(padx=10, pady=10, fill="both", expand=True)
 
-            columns = 3  # 3 cards per row
+            columns = 5  # 5 cards per row
 
             # Load products from Excel
             try:
@@ -758,6 +768,7 @@ class ECommerceApp(ctk.CTk):
             checkout_btn = ctk.CTkButton(self.content_area, text="Checkout", command=self.checkout)
             checkout_btn.place(x=800,y=10)
 
+
         def remove_from_cart(product):
             self.current_user.cart.remove(product)
             self.show_cart()  # refresh
@@ -823,7 +834,7 @@ class ECommerceApp(ctk.CTk):
 
         # Save receipt (simple .txt version)
         try:
-            receipt_text = f'Thank you for using the One-stop Shop For All! Please come again'
+            receipt_text = f'Thank you for using the One-stop Shop For All! Please come again\n'
             receipt_text += f"Receipt for {self.current_user.username}\n"
             receipt_text += "--------------------------------------\n"
             total = 0
@@ -844,14 +855,15 @@ class ECommerceApp(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Receipt Error", f"Failed to generate receipt: {e}")
             return
-
+        
         # Clear the cart
         self.current_user.cart.clear()
+        
 
         messagebox.showinfo("Checkout Successful", f"Checkout complete! Receipt saved as receipt_{self.current_user.username}.txt")
 
         # Optional: refresh cart UI if needed
-        self.show_cart()
+        return self.show_cart()
 
 # Run App
 if __name__ == "__main__":
